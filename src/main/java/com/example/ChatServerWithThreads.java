@@ -48,9 +48,12 @@ public class ChatServerWithThreads {
      */
     private static class ConnectionHandler extends Thread {
         Socket client;
+        ObjectInputStream ois;
+        ObjectOutputStream oos;
         ConnectionHandler(Socket socket) {
             client = socket;
         }
+
         public void run() {
             String clientAddress = client.getInetAddress().toString();
             while(true) {
@@ -64,6 +67,4 @@ public class ChatServerWithThreads {
             }
         }
     }
-
-
 }
