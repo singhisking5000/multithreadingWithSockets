@@ -6,6 +6,7 @@ import java.io.ObjectOutputStream;
 import java.lang.ClassNotFoundException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 
 /**
  * This class implements java Socket server
@@ -14,7 +15,7 @@ import java.net.Socket;
  * it with SocketClientExample to see results. Note that since this doesn't use threads it can only
  * handle one connection at a time.
  */
-public class SocketServerExample {
+public class ServerExample {
     
     //static ServerSocket variable
     private static ServerSocket server;
