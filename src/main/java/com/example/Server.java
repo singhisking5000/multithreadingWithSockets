@@ -26,11 +26,13 @@ public class Server {
     public static void main(String[] args) {
 
         ServerSocket listener;  // Listens for incoming connections.
+        Socket connection;
 
         /* Accept and process connections forever, or until some error occurs. */
         try {
             // Create the servers socket
             listener = new ServerSocket(LISTENING_PORT);
+            connection = listener.accept();
             System.out.println("Listening on port " + LISTENING_PORT);
             while (true) {
                 //Keep trying to accept new 
@@ -50,30 +52,61 @@ public class Server {
      */
     private static class ConnectionHandler extends Thread {
         //This handles our connection between the server socket and the 
-        Socket client;
-        ObjectInputStream in;
-        ObjectOutputStream out;
+        private static ArrayList<ConnectionHandler> handlers;
+        Socket socket;
+        ObjectInputStream in; // From client
+        ObjectOutputStream out; // To client
 
-        ConnectionHandler(Socket socket) {
-            client = socket;
+        public ConnectionHandler(Socket s) {
+            socket = s;
+            if(handlers == null)
+            {
+                //Initialize handlers
+                handlers = new ArrayList<>();
+            }
+            // Add us to the handlers
+            handlers.add(this);
+            //Attempt to fetch the input stream
+            try {
+                in = new ObjectInputStream(socket.getInputStream());
+            } catch (Exception e) {
+                System.err.println(e);
+            }
         }
 
         public void run() {
-            String clientAddress = client.getInetAddress().toString();
+            String clientAddress = socket.getInetAddress().toString();
+            
             while(true) {
 	            try {
-	            	//your code to send messages goes here.
-	            }
-	            catch (Exception e){
+                    String message = (String)in.readObject();
+                    if(!message.equals("disconnect")) {
+                        send(message);
+                        System.out.println(message);
+                    } else {
+                        System.out.println("disconnecting");
+                        handlers.remove(this);
+                        break;
+                    }
+	            } catch (Exception e){
 	                System.out.println("Error on connection with: " 
 	                        + clientAddress + ": " + e);
 	            }
             }
         }
 
-        public void send(String s){
-            synchronized(this){
-                //send message to just me
+        public void send(String s) { // NEXT STEP
+            synchronized(this) {
+                // go throughout each other handler, and make their output stream the message
+                for(ConnectionHandler handler : handlers)
+                {
+                    try {
+                        handler.out.writeObject(s);
+                    } catch (Exception e) {
+                        
+                    }
+                    
+                }
             }
         }
     } // end of our ConnectionHandler thread
