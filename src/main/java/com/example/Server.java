@@ -19,24 +19,23 @@ import java.util.Date;
 public class Server {
     // OUR SERVERS PORT
     public static final int LISTENING_PORT = 9876;
-
     //All our connections(to our clients) will be stored in the ArrayList below
-    private static ArrayList<Socket> connections;
+    //private static ArrayList<ConnectionHandler> handlers = new ArrayList<>();
 
     public static void main(String[] args) {
 
         ServerSocket listener;  // Listens for incoming connections.
-        Socket connection;
+        //Socket connection;
 
-        /* Accept and process connections forever, or until some error occurs. */
         try {
             // Create the servers socket
             listener = new ServerSocket(LISTENING_PORT);
-            connection = listener.accept();
+            //connection = listener.accept();
             System.out.println("Listening on port " + LISTENING_PORT);
+
             while (true) {
-                //Keep trying to accept new 
-                connections.add(listener.accept());
+                //Keep creating new ConnectionHandlers
+                new ConnectionHandler(listener.accept());
             }
         } catch (Exception e) {
             System.out.println("Sorry, the server has shut down.");
@@ -81,10 +80,11 @@ public class Server {
 	            try {
                     String message = (String)in.readObject();
                     if(!message.equals("disconnect")) {
+                        System.out.println("Attempting to send: " + message);
                         send(message);
-                        System.out.println(message);
                     } else {
                         System.out.println("disconnecting");
+                        this.socket.close();
                         handlers.remove(this);
                         break;
                     }
@@ -96,16 +96,25 @@ public class Server {
         }
 
         public void send(String s) { // NEXT STEP
+            String clientAddress = socket.getInetAddress().toString();
             synchronized(this) {
                 // go throughout each other handler, and make their output stream the message
                 for(ConnectionHandler handler : handlers)
                 {
-                    try {
-                        handler.out.writeObject(s);
-                    } catch (Exception e) {
-                        
+                    if (handler != this) 
+                    {
+                        try {
+                            //For each OTHER handler
+                            synchronized(handler)
+                            {
+                                //Isolate them, and change their output stream to the message and rush it out
+                                handler.out.writeObject(s);
+                                handler.out.flush();
+                            }
+                        } catch (Exception e) {
+                            System.out.println("Error sending message from: " + clientAddress + ": " + e);
+                        }
                     }
-                    
                 }
             }
         }
