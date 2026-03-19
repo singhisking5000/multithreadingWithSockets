@@ -71,6 +71,7 @@ public class Server {
             //Attempt to fetch the input stream
             try {
                 in = new ObjectInputStream(socket.getInputStream());
+                out = new ObjectOutputStream(socket.getOutputStream());
             } catch (Exception e) {
                 System.err.println(e);
             }
@@ -92,13 +93,13 @@ public class Server {
                         break;
                     }
 	            } catch (Exception e){
-	                System.out.println("Error on connection with: " 
-	                        + clientAddress + ": " + e);
+	                System.out.println("Error on connection with: " + clientAddress + ": " + e);
+                    break;
 	            }
             }
         }
 
-        public void send(String s) { // NEXT STEP
+        public void send(String s) {
             String clientAddress = socket.getInetAddress().toString();
             synchronized(this) {
                 // go throughout each other handler, and make their output stream the message
