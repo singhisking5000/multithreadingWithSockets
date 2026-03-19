@@ -5,6 +5,7 @@ import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Scanner;
 
 
 public class Client {
@@ -51,5 +52,11 @@ public class Client {
             out.close();
             Thread.sleep(100);
         }
-    }
-}
+
+        // while(true)
+        // {
+        //     socket = new Socket(host.getHostName(), 9876);
+
+        // }
+    } // End of main(){}
+} // end of Client (){}

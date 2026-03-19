@@ -35,7 +35,10 @@ public class Server {
 
             while (true) {
                 //Keep creating new ConnectionHandlers
-                new ConnectionHandler(listener.accept());
+                ConnectionHandler temp = new ConnectionHandler(listener.accept());
+                System.out.println("Successsfully connected to (" + temp.socket.getInetAddress().toString() + ")!");
+                temp.start();
+                temp.out.writeObject("You have connected!");
             }
         } catch (Exception e) {
             System.out.println("Sorry, the server has shut down.");
