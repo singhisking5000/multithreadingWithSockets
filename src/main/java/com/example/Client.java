@@ -6,7 +6,6 @@ import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.Scanner;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -35,10 +34,12 @@ public class Client {
         //get the localhost IP address, if server is running on some other IP, you need to use that
         System.out.println("Running main in client!");
         InetAddress host = InetAddress.getLocalHost();
+        // Ignore the numbers, they are for testing the sequence
         System.out.println("1");
         Socket socket = new Socket(host.getHostName(), 9876);
         System.out.println("2");
-            //write to socket using ObjectOutputStream
+        //write to socket using ObjectOutputStream
+        // STOPS ON LINE 43 FOR SOME REASON?
         ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
         System.out.println("3");
         ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
@@ -54,17 +55,18 @@ public class Client {
         createGUI(out, socket);
         inputReader incoming = new inputReader(in);
         incoming.start();
-    
     }
 
     private static void createGUI(ObjectOutputStream o, Socket s) // creates the gui
     {
         System.out.println("Called createGUI");
         f = new JFrame("Client");
+        f.setPreferredSize(new Dimension(300,300));
+        f.setSize(new Dimension(300,300));
         contentPanel = new JPanel();
         inputField = new JTextField();
         messageArea = new JTextArea();
-        contentPanel.setLayout(new GridLayout(1, 2));
+        contentPanel.setLayout(new GridLayout(2, 1));
         contentPanel.add(messageArea);
         contentPanel.add(inputField);
 
@@ -77,6 +79,7 @@ public class Client {
                         String prompt = inputField.getText();
                         if(prompt.equals(KEY_WORD))
                         {
+                            o.writeObject("disconnect");
                             s.shutdownOutput();
                             System.out.println("Connection closed!");
                         } else if (!prompt.equals("")) {
@@ -99,27 +102,25 @@ public class Client {
             }
         });
 
-        f.setLayout(new GridLayout(1,2));
+        f.setLayout(new GridLayout());
         f.add(contentPanel);
         f.setVisible(true);;
     }
 
     private static class inputReader extends Thread
     {
-        ObjectInputStream in;
+        ObjectInputStream incomingMessageStream;
 
-        public inputReader(ObjectInputStream i)
-        {
-            in = i;
+        public inputReader(ObjectInputStream i) {
+            incomingMessageStream = i;
         }
 
-        public void run()
-        {
+        public void run() {
             while(true)
             {
                 try
                 {
-                    String incomingMessage = (String)in.readObject();
+                    String incomingMessage = (String) incomingMessageStream.readObject();
                     System.out.println(incomingMessage);
                 } catch (Exception e)
                 {
