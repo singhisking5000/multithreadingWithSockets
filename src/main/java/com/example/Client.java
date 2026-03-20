@@ -9,6 +9,8 @@ import java.net.UnknownHostException;
 import java.util.Scanner;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 
 public class Client {
    
@@ -23,26 +25,29 @@ public class Client {
      *  ****HINT**** you may wish to have a thread be in charge of sending information
      *  and another thread in charge of receiving information.
     */
+    public static JTextField inputField;
     public static void main(String[] args) throws UnknownHostException, IOException, ClassNotFoundException, InterruptedException{
         //get the localhost IP address, if server is running on some other IP, you need to use that
         InetAddress host = InetAddress.getLocalHost();
         Socket socket = new Socket(host.getHostName(), 9876);
             //write to socket using ObjectOutputStream
-        ObjectOutputStream   out = new ObjectOutputStream(socket.getOutputStream()); // our message to be sent
-        ObjectInputStream in = new ObjectInputStream(socket.getInputStream()); // what we recieve
+        
         // keep reading the input stream
         // when we hit enter, we want to output our text
 
         JFrame f = new JFrame("Client");
         JPanel contentPanel = new JPanel();
-        JTextField inputField = new JTextField();
+        inputField = new JTextField();
+        // InputMap inputMap = new InputMap();
         contentPanel.setLayout(new GridLayout(1, 2));
         JTextArea messageArea = new JTextArea();
         contentPanel.add(messageArea);
         contentPanel.add(inputField);
+
+        // inputField.addKeyListener(KeyEvent k);
+
         f.setLayout(new GridLayout());
         f.add(contentPanel);
-        
 
         //make a guid here
         //put the writing stuff (below) to attach to an action listener or a text box
@@ -51,27 +56,54 @@ public class Client {
     
         Scanner input = new Scanner(System.in);
         String line ="";
-        while(!(line = input.nextLine()).equals("disconnect")){
-            out.writeObject(line);
-            out.flush();
-        }
+        
 
         input.close();
         socket.shutdownOutput();
-        System.out.println("connection closed!");
-
-        // while(true)
-        // {
-        //     String incomingMessage = (String)in.readObject();
-        //     System.out.println(incomingMessage);
-        // }
-
-
-        
-        // 2 threads for reading and 
+        System.out.println("Connection closed!");
     }
-    private void enterPressed()
-    {
 
+    //
+    // @Override
+    // public void keyPressed(KeyEvent e) {
+    //     if(e.getKeyCode() == KeyEvent.VK_ENTER) // If we hit the enter key
+    //     {
+    //         String text = inputField.getText
+    //     }
+    // }
+    // @Override
+    // public void keyReleased(KeyEvent e) {
+    //     // Not necessary
+    // }
+    // @Override
+    // public void keyTyped(KeyEvent e) {
+    //     // not necessary
+    // }
+
+    private static class inputReader extends Thread
+    {
+        ObjectInputStream in;
+
+        public inputReader(ObjectInputStream i)
+        {
+            in = i;
+        }
+
+        public void run()
+        {
+            while(true)
+            {
+                try
+                {
+                    String incomingMessage = (String)in.readObject();
+                    System.out.println(incomingMessage);
+                } catch (Exception e)
+                {
+                    System.err.println("Error at line 105: " + e);
+                    break;
+                }
+                
+            }
+        }
     }
 }
