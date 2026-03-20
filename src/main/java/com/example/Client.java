@@ -13,8 +13,6 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
 public class Client {
-   
-   
     /*
      * Modify this example so that it opens a dialogue window using java swing,
      * takes in a user message and sends it
@@ -25,60 +23,86 @@ public class Client {
      *  ****HINT**** you may wish to have a thread be in charge of sending information
      *  and another thread in charge of receiving information.
     */
-    public static JTextField inputField;
-    public static void main(String[] args) throws UnknownHostException, IOException, ClassNotFoundException, InterruptedException{
+
+    static JFrame f;
+    static JPanel contentPanel;
+    static JTextField inputField;
+    static JTextArea messageArea;
+
+    static String KEY_WORD = "disconnect";
+
+    public static void main(String[] args) throws UnknownHostException, IOException, ClassNotFoundException, InterruptedException {
         //get the localhost IP address, if server is running on some other IP, you need to use that
+        System.out.println("Running main in client!");
         InetAddress host = InetAddress.getLocalHost();
+        System.out.println("1");
         Socket socket = new Socket(host.getHostName(), 9876);
+        System.out.println("2");
             //write to socket using ObjectOutputStream
+        ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+        System.out.println("3");
+        ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+        System.out.println("4");
         
+
         // keep reading the input stream
         // when we hit enter, we want to output our text
-
-        JFrame f = new JFrame("Client");
-        JPanel contentPanel = new JPanel();
-        inputField = new JTextField();
-        // InputMap inputMap = new InputMap();
-        contentPanel.setLayout(new GridLayout(1, 2));
-        JTextArea messageArea = new JTextArea();
-        contentPanel.add(messageArea);
-        contentPanel.add(inputField);
-
-        // inputField.addKeyListener(KeyEvent k);
-
-        f.setLayout(new GridLayout());
-        f.add(contentPanel);
-
         //make a guid here
         //put the writing stuff (below) to attach to an action listener or a text box
 
-
+        System.out.println("going to call createGUI");
+        createGUI(out, socket);
+        inputReader incoming = new inputReader(in);
+        incoming.start();
     
-        Scanner input = new Scanner(System.in);
-        String line ="";
-        
-
-        input.close();
-        socket.shutdownOutput();
-        System.out.println("Connection closed!");
     }
 
-    //
-    // @Override
-    // public void keyPressed(KeyEvent e) {
-    //     if(e.getKeyCode() == KeyEvent.VK_ENTER) // If we hit the enter key
-    //     {
-    //         String text = inputField.getText
-    //     }
-    // }
-    // @Override
-    // public void keyReleased(KeyEvent e) {
-    //     // Not necessary
-    // }
-    // @Override
-    // public void keyTyped(KeyEvent e) {
-    //     // not necessary
-    // }
+    private static void createGUI(ObjectOutputStream o, Socket s) // creates the gui
+    {
+        System.out.println("Called createGUI");
+        f = new JFrame("Client");
+        contentPanel = new JPanel();
+        inputField = new JTextField();
+        messageArea = new JTextArea();
+        contentPanel.setLayout(new GridLayout(1, 2));
+        contentPanel.add(messageArea);
+        contentPanel.add(inputField);
+
+        inputField.addKeyListener(new KeyListener() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    System.out.println("Enter was pressed!");
+                    try {
+                        String prompt = inputField.getText();
+                        if(prompt.equals(KEY_WORD))
+                        {
+                            s.shutdownOutput();
+                            System.out.println("Connection closed!");
+                        } else if (!prompt.equals("")) {
+                            o.writeObject(inputField.getText());
+                            o.flush();
+                            inputField.setText("");
+                        }
+                    } catch (Exception err) {
+                        err.printStackTrace();
+                    }
+                }
+            }
+
+            @Override
+            public void keyReleased(java.awt.event.KeyEvent e) {
+            }
+
+            @Override
+            public void keyTyped(java.awt.event.KeyEvent e) {
+            }
+        });
+
+        f.setLayout(new GridLayout(1,2));
+        f.add(contentPanel);
+        f.setVisible(true);;
+    }
 
     private static class inputReader extends Thread
     {
@@ -102,7 +126,6 @@ public class Client {
                     System.err.println("Error at line 105: " + e);
                     break;
                 }
-                
             }
         }
     }
