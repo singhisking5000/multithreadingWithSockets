@@ -38,7 +38,7 @@ public class Server {
                 ConnectionHandler temp = new ConnectionHandler(listener.accept());
                 System.out.println("Successsfully connected to (" + temp.socket.getInetAddress().toString() + ")!");
                 temp.start();
-                temp.out.writeObject("You have connected!");
+                // temp.out.writeObject("You have connected!");
             }
         } catch (Exception e) {
             System.out.println("Sorry, the server has shut down.");
@@ -58,6 +58,8 @@ public class Server {
         Socket socket;
         ObjectInputStream in; // From client
         ObjectOutputStream out; // To client
+        private static int userCount = 0;
+        private String name = "";
 
         public ConnectionHandler(Socket s) {
             socket = s;
@@ -68,6 +70,7 @@ public class Server {
             }
             // Add us to the handlers
             handlers.add(this);
+            userCount++;
             //Attempt to fetch the input stream
             try {
                 in = new ObjectInputStream(socket.getInputStream());
@@ -79,15 +82,25 @@ public class Server {
 
         public void run() {
             String clientAddress = socket.getInetAddress().toString();
+
+            name = "AnonymousUser" + userCount;
+
+            try {
+                out.writeObject("You have connected!");
+                send(" has joined the chat!", true);
+            } catch (IOException e) {
+                System.out.println("Error greeting: " + clientAddress);
+            }
             
             while(true) {
 	            try {
                     String message = (String)in.readObject();
                     if(!message.equals("disconnect")) {
                         System.out.println("Attempting to send: " + message);
-                        send(message);
+                        send(message, false);
                     } else {
-                        System.out.println("disconnecting");
+                        System.out.println("Disconnecting " + clientAddress);
+                        send(" has left!", true);
                         this.socket.close();
                         handlers.remove(this);
                         break;
@@ -99,25 +112,29 @@ public class Server {
             }
         }
 
-        public void send(String s) {
+        public void send(String s, boolean greet) {
             String clientAddress = socket.getInetAddress().toString();
             synchronized(this) {
                 // go throughout each other handler, and make their output stream the message
                 for(ConnectionHandler handler : handlers)
                 {
-                    if (handler != this) 
-                    {
-                        try {
-                            //For each OTHER handler
-                            synchronized(handler)
+                    try {
+                        //For each OTHER handler
+                        synchronized(handler)
+                        {
+                            //Isolate them, and change their output stream to the message and rush it out
+                            if (greet)
                             {
-                                //Isolate them, and change their output stream to the message and rush it out
-                                handler.out.writeObject(s);
+                                handler.out.writeObject(name + s);
+                                handler.out.flush();
+                            } else {
+                                handler.out.writeObject(name + ": " + s);
                                 handler.out.flush();
                             }
-                        } catch (Exception e) {
-                            System.out.println("Error sending message from: " + clientAddress + ": " + e);
+                            
                         }
+                    } catch (Exception e) {
+                        System.out.println("Error sending message from: " + clientAddress + ": " + e);
                     }
                 }
             }

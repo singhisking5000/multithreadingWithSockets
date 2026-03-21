@@ -1,6 +1,7 @@
 
 package com.example;
 import java.io.IOException;
+import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
@@ -24,10 +25,9 @@ public class Client {
     */
 
     static JFrame f;
-    static JPanel contentPanel;
-    static JTextField inputField;
-    static JTextArea messageArea;
-
+    static JPanel contentPanel=new JPanel();
+    static JTextField inputField=new JTextField();
+    static JTextArea messageArea = new JTextArea();
     static String KEY_WORD = "disconnect";
 
     public static void main(String[] args) throws UnknownHostException, IOException, ClassNotFoundException, InterruptedException {
@@ -40,35 +40,84 @@ public class Client {
         System.out.println("2");
         //write to socket using ObjectOutputStream
         // STOPS ON LINE 43 FOR SOME REASON?
-        ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
-        System.out.println("3");
         ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+        System.out.println("3");
+        ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
         System.out.println("4");
         
 
         // keep reading the input stream
         // when we hit enter, we want to output our text
-        //make a guid here
-        //put the writing stuff (below) to attach to an action listener or a text box
+        // make a guid here
+        // put the writing stuff (below) to attach to an action listener or a text box
 
-        System.out.println("going to call createGUI");
-        createGUI(out, socket);
         inputReader incoming = new inputReader(in);
         incoming.start();
+        System.out.println("going to call createGUI");
+        createGUI(out, socket, in, incoming);
     }
 
-    private static void createGUI(ObjectOutputStream o, Socket s) // creates the gui
+    private static void createGUI(ObjectOutputStream o, Socket s, ObjectInputStream i, inputReader reader) // creates the gui
     {
         System.out.println("Called createGUI");
         f = new JFrame("Client");
-        f.setPreferredSize(new Dimension(300,300));
-        f.setSize(new Dimension(300,300));
-        contentPanel = new JPanel();
-        inputField = new JTextField();
-        messageArea = new JTextArea();
-        contentPanel.setLayout(new GridLayout(2, 1));
-        contentPanel.add(messageArea);
-        contentPanel.add(inputField);
+        f.setPreferredSize(new Dimension(600, 600));
+        f.setSize(new Dimension(600, 600));
+        contentPanel.setSize(new Dimension(600,600));
+        contentPanel.setPreferredSize(new Dimension(600, 600));
+        JTextArea messageHeader = new JTextArea("Chat: ");
+        JTextArea promptHeader = new JTextArea("Insert a message: ");
+        messageHeader.setEditable(false);
+        promptHeader.setEditable(false);
+
+        GridBagLayout layout = new GridBagLayout();
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.fill = GridBagConstraints.BOTH;
+        constraints.anchor = GridBagConstraints.PAGE_START;
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        constraints.gridheight = 1;
+        constraints.gridwidth = 1;
+        constraints.weightx = 1;
+        constraints.weighty = 0;
+
+        Dimension headers = new Dimension(600, 100);
+        Dimension fields = new Dimension(600, 200);
+
+        contentPanel.setLayout(layout);
+
+        messageHeader.setPreferredSize(headers);
+        messageHeader.setSize(headers);
+        contentPanel.add(messageHeader, constraints);
+
+        // (0,1) 1x2
+        constraints.gridy = 1;
+        constraints.gridheight = 2;
+        // messageArea.setPreferredSize(fields);
+        // messageArea.setSize(fields);
+        constraints.weighty = 0.4;
+        JScrollPane scrollPane = new JScrollPane(messageArea);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        messageArea.setWrapStyleWord(true);
+        messageArea.setLineWrap(true);
+        contentPanel.add(scrollPane, constraints);
+
+        // (0,3) 1x1
+        constraints.gridy = 3;
+        constraints.gridheight = 1;
+        promptHeader.setPreferredSize(headers);
+        promptHeader.setSize(headers);
+        constraints.weighty = 0;
+        contentPanel.add(promptHeader, constraints);
+
+        constraints.gridy = 4;
+        constraints.gridheight = 2;
+        inputField.setPreferredSize(fields);
+        inputField.setSize(fields);
+        constraints.weighty = 0.4;
+        contentPanel.add(inputField, constraints);
+        messageArea.setEditable(false);
 
         inputField.addKeyListener(new KeyListener() {
             @Override
@@ -80,8 +129,14 @@ public class Client {
                         if(prompt.equals(KEY_WORD))
                         {
                             o.writeObject("disconnect");
-                            s.shutdownOutput();
+                            o.flush();
+                            reader.interrupt();
+                            i.close();
+                            o.close();
+                            s.close();
+                            f.dispose();
                             System.out.println("Connection closed!");
+                            System.exit(0);
                         } else if (!prompt.equals("")) {
                             o.writeObject(inputField.getText());
                             o.flush();
@@ -92,19 +147,26 @@ public class Client {
                     }
                 }
             }
-
             @Override
             public void keyReleased(java.awt.event.KeyEvent e) {
             }
-
             @Override
             public void keyTyped(java.awt.event.KeyEvent e) {
             }
         });
 
-        f.setLayout(new GridLayout());
-        f.add(contentPanel);
-        f.setVisible(true);;
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        constraints.gridwidth = 1;
+        constraints.gridheight = 1;
+        constraints.weightx = 1;
+        constraints.weighty = 1;
+        constraints.anchor = GridBagConstraints.PAGE_START;
+        constraints.fill = GridBagConstraints.BOTH;
+        f.setLayout(layout);
+        f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        f.add(contentPanel, constraints);
+        f.setVisible(true);
     }
 
     private static class inputReader extends Thread
@@ -121,7 +183,12 @@ public class Client {
                 try
                 {
                     String incomingMessage = (String) incomingMessageStream.readObject();
-                    System.out.println(incomingMessage);
+                    SwingUtilities.invokeLater(() -> {
+                        System.out.println(incomingMessage);
+                        messageArea.setText(messageArea.getText() + "\n" + incomingMessage);
+                        messageArea.setCaretPosition(messageArea.getDocument().getLength());
+                });
+                    
                 } catch (Exception e)
                 {
                     System.err.println("Error at line 105: " + e);
