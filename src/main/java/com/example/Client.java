@@ -11,6 +11,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 
 public class Client {
     /*
@@ -34,22 +37,13 @@ public class Client {
         //get the localhost IP address, if server is running on some other IP, you need to use that
         System.out.println("Running main in client!");
         InetAddress host = InetAddress.getLocalHost();
-        // Ignore the numbers, they are for testing the sequence
-        System.out.println("1");
-        Socket socket = new Socket(host.getHostName(), 9876);
-        System.out.println("2");
-        //write to socket using ObjectOutputStream
-        // STOPS ON LINE 43 FOR SOME REASON?
-        ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-        System.out.println("3");
-        ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
-        System.out.println("4");
-        
 
-        // keep reading the input stream
-        // when we hit enter, we want to output our text
-        // make a guid here
-        // put the writing stuff (below) to attach to an action listener or a text box
+ 
+        Socket socket = new Socket(host.getHostName(), 9876);
+
+        ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+        ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+        
 
         inputReader incoming = new inputReader(in);
         incoming.start();
@@ -155,6 +149,50 @@ public class Client {
             }
         });
 
+
+        f.addWindowListener(new WindowListener() {
+            @Override
+            public void windowActivated(WindowEvent e) {
+            }
+
+            @Override
+            public void windowClosed(WindowEvent e) {
+            }
+
+            @Override
+            public void windowClosing(WindowEvent e) {
+                try {
+                    o.writeObject("disconnect");
+                    o.flush();
+                    reader.interrupt();
+                    i.close();
+                    o.close();
+                    s.close();
+                    f.dispose();
+                    System.out.println("Connection closed!");
+                    System.exit(0);
+                } catch (IOException e1) {
+                    // TODO Auto-generated catch block
+                    e1.printStackTrace();
+                }
+            }
+
+            @Override
+            public void windowDeactivated(WindowEvent e) {
+            }
+
+            @Override
+            public void windowDeiconified(WindowEvent e) {
+            }
+
+            @Override
+            public void windowIconified(WindowEvent e) {
+            }
+
+            @Override
+            public void windowOpened(WindowEvent e) {
+            }
+        });
         constraints.gridx = 0;
         constraints.gridy = 0;
         constraints.gridwidth = 1;
@@ -187,8 +225,7 @@ public class Client {
                         System.out.println(incomingMessage);
                         messageArea.setText(messageArea.getText() + "\n" + incomingMessage);
                         messageArea.setCaretPosition(messageArea.getDocument().getLength());
-                });
-                    
+                    });   
                 } catch (Exception e)
                 {
                     System.err.println("Error at line 105: " + e);

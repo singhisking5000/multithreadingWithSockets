@@ -82,9 +82,7 @@ public class Server {
 
         public void run() {
             String clientAddress = socket.getInetAddress().toString();
-
             name = "AnonymousUser" + userCount;
-
             try {
                 out.writeObject("You have connected!");
                 send(" has joined the chat!", true);
